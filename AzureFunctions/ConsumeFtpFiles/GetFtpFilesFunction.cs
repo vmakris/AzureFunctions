@@ -28,30 +28,20 @@ namespace ConsumeFtpFiles
                     BlobClient blobClient = new BlobClient(CloudStorageAccount.Parse(Environment.GetEnvironmentVariable("AzureWebJobsStorage")));
 
                     var completedFiles = blobClient.getAllLogs().Select(x => x.fileName_VC).ToList();
-                    var folderYearList = ftpClient.directoryListSimple("").Where(year => year.Length > 0 && Convert.ToInt16(year) >= Convert.ToInt16(Environment.GetEnvironmentVariable("ftpStartingYear"))).OrderBy(y => y);
-                    foreach (var folderYear in folderYearList)
+                    var fileList = ftpClient.directoryListSimple("");
+                    foreach (var file in fileList)
                     {
-                        var folderMonthListing = ftpClient.directoryListSimple("" + folderYear).Where(month => month.Length > 0).OrderBy(m => m);
-                        foreach (var folderMonth in folderMonthListing)
+                        if (file.Length > 0 && !completedFiles.Contains(file))
                         {
-                            var fileListing = ftpClient.directoryListSimple("" + folderMonth).Where(file => file.Length > 0).OrderBy(f => f);
-                            foreach (var file in fileListing)
+                            ftpClient.putToBlob(file, blobClient);
+                            blobClient.writeLog(new LogEntryEntity(String.Format("{0:D19}", DateTime.MaxValue.Ticks - DateTime.UtcNow.Ticks), Guid.NewGuid().ToString())
                             {
-                                var _filename = folderYear + "/" + file;
-                                if (!completedFiles.Contains(_filename))
-                                {
-                                    ftpClient.putToBlob(_filename, blobClient);
-                                    blobClient.writeLog(new LogEntryEntity(String.Format("{0:D19}", DateTime.MaxValue.Ticks - DateTime.UtcNow.Ticks), Guid.NewGuid().ToString())
-                                    {
-                                        dateTime_VC = DateTime.Now,
-                                        fileName_VC = _filename,
-                                        status_VC = (int)LogStatus.Completed
-                                    });
-                                    log.Info("filename:" + _filename);
-                                }
-                            }
+                                dateTime_VC = DateTime.Now,
+                                fileName_VC = file,
+                                status_VC = (int)LogStatus.Completed
+                            });
+                            log.Info("filename:" + file);
                         }
-                        Environment.SetEnvironmentVariable("ftpStartingYear", folderYear);
                     }
                     ftpClient = null;
                     Environment.SetEnvironmentVariable("isRunning", "false");
