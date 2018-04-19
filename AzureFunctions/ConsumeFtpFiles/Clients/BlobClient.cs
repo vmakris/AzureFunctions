@@ -53,7 +53,7 @@ namespace ConsumeFtpFiles.Clients
                 var table = tableClient.GetTableReference("FunctionFiles");
                 table.CreateIfNotExists();
                 var fileList = new List<FileEntryEntity>();
-                var query = new TableQuery<FileEntryEntity>().Take(50);
+                var query = new TableQuery<FileEntryEntity>().Take(1000);
                 return table.ExecuteQuery(query);
             }
             catch (Exception ex) { throw ex; }
@@ -101,7 +101,7 @@ namespace ConsumeFtpFiles.Clients
                 var tableClient = _account.CreateCloudTableClient();
                 var table = tableClient.GetTableReference("FunctionLogs");
                 table.CreateIfNotExists();
-                TableOperation insertOperation = TableOperation.Insert(log);
+                TableOperation insertOperation = TableOperation.InsertOrReplace(log);
                 table.Execute(insertOperation);
                 return true;
             }
@@ -128,7 +128,7 @@ namespace ConsumeFtpFiles.Clients
                 var tableClient = _account.CreateCloudTableClient();
                 var table = tableClient.GetTableReference("FunctionFiles");
                 table.CreateIfNotExists();
-                TableOperation insertOperation = TableOperation.Insert(file);
+                TableOperation insertOperation = TableOperation.InsertOrReplace(file);
                 table.Execute(insertOperation);
                 return true;
             }
